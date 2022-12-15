@@ -10,17 +10,18 @@ import numpy as np
 from scipy.stats import norm
 import seaborn as sb
 
-def removeExtremeValuesRunTime(list):
-    meanBefore = np.mean(list);
-    avgBefore = np.average(list);
+offset =0
+max = 0
+boarder_start = 0
+fileDir = "8k_72"
+fileNameApp = "mean"
 
+def removeExtremeValuesRunTime(list):
     list.remove(list[0])
     list.remove(list[0])
     leng = len(list)
     list.remove(list[leng-1])
     list.remove(list[leng - 2])
-    meanAfter = np.mean(list)
-    avgAfter = np.average(list);
     return list
 
 def removeExtremeValuesComTime(list):
@@ -33,6 +34,9 @@ def removeExtremeValuesComTime(list):
 
 
 def readAverage(file, linesToRead):
+    global offset
+    global boarder_start
+    global max
     comTimeList = []
     runTimeList = []
     scrap = file.readline() # skip first
@@ -47,9 +51,14 @@ def readAverage(file, linesToRead):
     runTimeList.sort()
     com = removeExtremeValuesComTime(comTimeList)
     run = removeExtremeValuesRunTime(runTimeList)
-    return np.average(run), np.average(com)
+    medianCom = np.median(com)
+    medianRun = np.median(run)
+    return np.median(run), np.median(com)
 
 def open_file(name, dataList):
+    global offset
+    global boarder_start
+    global max
     # Use a breakpoint in the code line below to debug your script.
     file = open(fileDir+"/"+name, "r")
     for line in file:
@@ -66,27 +75,10 @@ def open_file(name, dataList):
             file.close()
             break
 
-offset =0
-max = 0
-boarder_start = 0
-fileDir = "8k_120"
 
 
 
 def plot_comp_time(list, name):
-    # index 0 comp
-    # mean = np.mean(list[0][0])
-    # std = np.std(list[0][0])
-    # var = np.var(list[0][0])
-    #
-    # pdf = norm.pdf(list[0][0] , loc = 5.3 , scale = 1 )
-    # sb.set_style('whitegrid')
-    # sb.lineplot(list[0][0],  color='black')
-    # plt.xlabel('')
-    # plt.ylabel('Probability Density')
-    # plt.show()
-    # print("smth")
-
     labels = []
     barComp = []
     stdComp = []
@@ -98,11 +90,11 @@ def plot_comp_time(list, name):
     while i < max:
         labels.append(i + offset-1)
         barComp.append(np.mean(list[i][0]))
-        stdComp.append(np.std(list[i][0]))
         barCom.append(np.mean(list[i][1]))
+        stdComp.append(np.std(list[i][0]))
         stdCom.append(np.std(list[i][1]))
-        avgComp.append(np.average(list[i][0]))
-        avgCom.append(np.average(list[i][1]))
+        # avgComp.append(np.median(list[i][0]))
+        # avgCom.append(np.median(list[i][1]))
         i+=1
     # plot computation
     fix, ax = plt.subplots()
@@ -112,8 +104,8 @@ def plot_comp_time(list, name):
     plt.title(name + " computation")
     plt.tight_layout()
     plt.bar(labels, barComp, yerr=stdComp, align='center', alpha=0.8, ecolor='black', capsize=6, color="blue")
-    plt.savefig("plots/" +name+"_computation")
-    plt.show()
+    plt.savefig("plots/"+name+"_computation_" +fileNameApp)
+    #plt.show()
 
     # plot communication
     fix, ax = plt.subplots()
@@ -123,8 +115,8 @@ def plot_comp_time(list, name):
     ax.yaxis.grid(True)
     plt.tight_layout()
     plt.bar(labels, barCom, yerr=stdCom, align='center', alpha=0.8, ecolor='black', capsize=6, color="green")
-    plt.savefig("plots/"+name+"_communication")
-    plt.show()
+    plt.savefig("plots/"+name+"_communication_" +fileNameApp)
+    #plt.show()
 
     # combined plot
 
@@ -141,24 +133,18 @@ def plot_comp_time(list, name):
     ax.legend(bbox_to_anchor=(0.5, -0.05))
 
 
-    plt.title(name + " combined")
     plt.tight_layout()
-    plt.savefig("plots/"+name+"_combined")
-    plt.show()
+    plt.savefig("plots/"+name+"_combined_" +fileNameApp)
+    return barComp, barCom, stdComp, stdCom
+    #plt.show()
 
 
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-
-    nodes = 4
-    cores_per_node = 4
-    domain_width = 4000
-    domain_height = 4000
-    skip_top = 0
-    skip_bot = 0
-
-
-
+#def plotB
+def getPlots():
+    global offset
+    global boarder_start
+    global max
+    global fileDir
     i = 0
     lowest_boarder = 1000
     highest_boarder = 0
@@ -166,14 +152,14 @@ if __name__ == '__main__':
         boarders = file[-7:]
         boarders = boarders.strip(".out")
         index = boarders.find('_')
-        boarders = boarders[index+1:]
+        boarders = boarders[index + 1:]
         if int(boarders) > highest_boarder:
             highest_boarder = int(boarders)
         if lowest_boarder > int(boarders):
             lowest_boarder = int(boarders)
     boarder_start = lowest_boarder
-    offset = lowest_boarder+1
-    max = highest_boarder-lowest_boarder+1
+    offset = lowest_boarder + 1
+    max = highest_boarder - lowest_boarder + 1
     dataListAverage = []
     dataListMedian = []
     for x in range(max):
@@ -203,7 +189,15 @@ if __name__ == '__main__':
         # remove top 2 and bot 2 for every
         # maybe top 3 and bot 3? Then need atlast 40 runs.
 
-    plot_comp_time(dataListAverage.copy(), fileDir)
-    # plot_standard_deviation(dataListMedian, "4000x4000 median")
-    # print(dataListMedian)
+        barComp, barCom, stdComp, stdCom = plot_comp_time(dataListAverage.copy(), fileDir)
+        return barComp, barCom, stdComp, stdCom
+
+# Press the green button in the gutter to run the script.
+if __name__ == '__main__':
+    barComp, barCom, stdComp, stdCom = getPlots()
+    fileDir += "_b"
+    barCompBlock, barComBlock, stdCompBlock, stdComBlock = getPlots()
+    print("hei")
+
+    # plot combined overlap from blocking and nonblocking:
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/
