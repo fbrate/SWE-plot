@@ -13,8 +13,14 @@ import seaborn as sb
 offset = 0
 max = 0
 boarder_start = 0
-fileDir = "8k_72"
-plotTitle = "8000W 8000H 72P"
+fileDir = "4k_80k"
+width = 8000
+height = 4000
+processes = 12
+w_proc = width//processes
+h_proc = height//processes
+plotDir = fileDir
+plotTitle = str(width) + "W " + str(height) + "H " + str(processes) + "P - " + str(w_proc) + "w x " +str(h_proc) + "h per process"
 fileNameApp = "mean"
 
 
@@ -106,7 +112,7 @@ def plot_comp_time(list, name):
     plt.title(plotTitle + " - Compute time")
     plt.tight_layout()
     plt.bar(labels, barComp, yerr=stdComp, align='center', alpha=0.8, ecolor='black', capsize=6, color="blue")
-    plt.savefig("plots/" + name + "_computation")
+    plt.savefig("plots/" + plotDir + "/" + fileDir + "_computation")
     # plt.show()
 
     # plot communication
@@ -117,7 +123,7 @@ def plot_comp_time(list, name):
     ax.yaxis.grid(True)
     plt.tight_layout()
     plt.bar(labels, barCom, yerr=stdCom, align='center', alpha=0.8, ecolor='black', capsize=6, color="green")
-    plt.savefig("plots/" + name + "_idle")
+    plt.savefig("plots/" + plotDir + "/" + fileDir + "_idle")
     # plt.show()
 
     # combined plot
@@ -136,7 +142,7 @@ def plot_comp_time(list, name):
     ax.legend(bbox_to_anchor=(0.5, -0.05))
 
     plt.tight_layout()
-    plt.savefig("plots/" + name + "_combined")
+    plt.savefig("plots/" + plotDir + "/" + fileDir + "_combined")
     return barComp, barCom, stdComp, stdCom
     # plt.show()
 
@@ -226,7 +232,7 @@ def overlapPlot(barCom, barComBlock):
     plt.title(plotTitle + " - Idle time removed")
     plt.tight_layout()
     plt.bar(labels, idle_removed, align='center', alpha=0.8, ecolor='black', capsize=6, color="blue")
-    plt.savefig("plots/" + fileDir + "_idleTime")
+    plt.savefig("plots/" + plotDir + "/" + fileDir + "_idleTime")
 
     # overlap:
     fix, ax = plt.subplots()
@@ -236,7 +242,7 @@ def overlapPlot(barCom, barComBlock):
     plt.title(plotTitle + " - Overlap")
     plt.tight_layout()
     plt.bar(labels, overlap, align='center', alpha=0.8, ecolor='black', capsize=6, color="blue")
-    plt.savefig("plots/" + fileDir + "_overlap")
+    plt.savefig("plots/" + plotDir + "/" + fileDir + "_overlap")
 
 
 def triplePlotGreen(com1, comp1, com2, comp2, com3, comp3, com1er, comp1er, com2er, comp2er, com3er, comp3er,
@@ -558,10 +564,42 @@ def triplePlot(com1, comp1, com2, comp2, com3, comp3, com1er, comp1er, com2er, c
     plt.savefig("plots/ok/" + name + "_overlap_combined")
 
 
+def plotOverlap(com, comp, bCom, bComp):
+    # overlap combined:
+    labels = []
+    overlap = []
+    i = 0
+    while i < max:
+        overlap.append((bCom[i] + bComp[i]) - (com[i] + comp[i]))
+        labels.append(i + offset - 1)
+        i+=1
+    fix, ax = plt.subplots(figsize=(10, 5))
+    ax.set_xlabel("Border Thickness (rows)")
+    ax.set_ylabel("Overlap (s)")
+    ax.yaxis.grid(True)
+    plt.title(plotTitle + " - Overlap combined" + str())
+
+    plt.bar(labels, overlap, width=1.0, align='center', capsize=4, alpha=0.9, ecolor='black',
+            color="lightsteelblue", label='12 processes')
+    plt.legend(loc='best')
+    plt.savefig("plots/" + plotDir + "/" + plotDir + "_overlap_combined")
+
 if __name__ == '__main__':
+    try:
+        os.mkdir("plots/"+fileDir)
+    except FileExistsError as exc:
+        pass
+    # plot overlap
     barComp, barCom, stdComp, stdCom = getPlots()
+    # plot blocking
     fileDir += "_b"
     barCompBlock, barComBlock, stdCompBlock, stdComBlock = getPlots()
+
+    #plot combined in overlap style:
+    plotOverlap(barCom, barComp, barComBlock, barCompBlock)
+
+
+    exit(0)
     # overlapPlot(barCom, barComBlock)
     fileDir = "8k_96"
     barComp_2, barCom_2, stdComp_2, stdCom_2 = getPlots()
