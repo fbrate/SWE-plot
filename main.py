@@ -109,6 +109,7 @@ def plot_comp_time(list, name):
     ax.set_xlabel("Boarders")
     ax.set_ylabel("Time (s)")
     ax.yaxis.grid(True)
+    plt.ylim(0,200)
     plt.title(plotTitle + " - Compute time")
     plt.tight_layout()
     plt.bar(labels, barComp, yerr=stdComp, align='center', alpha=0.8, ecolor='black', capsize=6, color="blue")
@@ -120,6 +121,10 @@ def plot_comp_time(list, name):
     ax.set_xlabel("Boarders")
     ax.set_ylabel("Idle time (s)")
     plt.title(plotTitle + " - Idle time")
+    if fileDir[-1] == "b":
+        plt.ylim(0,1)
+    else:
+        plt.ylim(0, 0.02)
     ax.yaxis.grid(True)
     plt.tight_layout()
     plt.bar(labels, barCom, yerr=stdCom, align='center', alpha=0.8, ecolor='black', capsize=6, color="green")
@@ -139,6 +144,7 @@ def plot_comp_time(list, name):
     ax.set_xlabel("Boarders")
     ax.set_ylabel("Time (s)")
     ax.yaxis.grid(True)
+    plt.ylim(0,200)
     ax.legend(bbox_to_anchor=(0.5, -0.05))
 
     plt.tight_layout()
@@ -577,6 +583,7 @@ def plotOverlap(com, comp, bCom, bComp):
     ax.set_xlabel("Border Thickness (rows)")
     ax.set_ylabel("Overlap (s)")
     ax.yaxis.grid(True)
+    plt.ylim(-10,6)
     plt.title(plotTitle + " - Overlap combined" + str())
 
     plt.bar(labels, overlap, width=1.0, align='center', capsize=4, alpha=0.9, ecolor='black',
