@@ -1,5 +1,8 @@
 
 
+# calculate for 1 superstep and multiply with the total number of iterations?
+
+
 # NOTE: WIDTH HEIGHT per PROCESSOR
 WIDTH = 100
 HEIGHT = 100
