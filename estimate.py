@@ -39,9 +39,9 @@ def originalCom(calc):
     total_com_time = 0
     # for each border exchange
     while i < ITERATIONS:
-        total_calc[i]
-        if i %
-        calculated_points += WIDTH * HEIGHT
+        # total_calc[i]
+        # if i %
+        # calculated_points += WIDTH * HEIGHT
         i+=1
     return
 
@@ -68,7 +68,4 @@ if __name__ == "__main__":
         print("Points for border thicknes " + str(i) + ": " + str(x) + ". Percentage inc: " + str(x/ogCalc * 100) + "%")
         i+=1
 
-    print("""\n###########################################################################
-##                         COMMUNICATION COSTS                           ##
-###########################################################################""")
     originalCom(calc)
