@@ -111,6 +111,13 @@ def createWriteTable(list):
         # add number of superstaps with total gap for each Sstep.
         comm_gap_times_superstep = total_super * tgap[i - 1]
         # calculate time to calculate extra stencils. * total supersteps.
+
+        # Recheck that data comes is as per superstep for its border thickness.
+        # make sure we times it against the correct to get total value.
+
+
+
+
         extra_points_over_calc_speed = (extra/ calcSpeed)
         runtime = base_runtime + comm_gap_times_superstep + (extra_points_over_calc_speed * total_super)
         perc = runtime / ogRuntime * 100
@@ -133,8 +140,8 @@ if __name__ == "__main__":
             info, t = createWriteTable(datamap[i])
             f.write(str(info))
             f.write(str(t) + "\n\n")
-            if(i == "500"):
-                print(t)
+            # if(i == "500"):
+            #     print(t)
 
 
     # print(tK)

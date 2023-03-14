@@ -4,6 +4,7 @@ import numpy as np
 fileDir ="gapMeasure"
 datamap = dict()
 headers = []
+ITER = 2520
 
 def createMapIndex(key):
     datamap[key] = ([],[],[],[],[])
@@ -90,9 +91,19 @@ if __name__ == "__main__":
         j = 0
         f.write("DATA," + str(i) + "\n")
         while j < 10:
-            sgap = np.median(list[0][j]) * 6
-            rgap = np.median(list[1][j]) * 6
-            cgap = np.median(list[2][j]) / (j+1)
+            sgap = np.median(list[0][j]) * 6 * (j+1)
+            rgap = np.median(list[1][j]) * 6 * (j+1)
+            cgap = np.median(list[2][j])
+
+            # make them all so that they are for each superstep
+            # they are currently for entire run.
+            sgap = sgap / (ITER/(j+1))
+            rgap = rgap / (ITER/(j+1))
+            cgap = cgap / (ITER/(j+1))
+
+
+
+
             tot = sgap + rgap + cgap
             run = np.median(list[3][j])
             f.write("b" + str(j) + "," + str(sgap) + "," + str(rgap) + "," + str(cgap) + "," + str(tot) + "," + str(run)+"\n")
