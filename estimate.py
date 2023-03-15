@@ -64,7 +64,7 @@ def readGaps():
         s = line[0:4]
         if s == "DATA":
             splitpline = line.split(",")
-            width = splitpline[1].removesuffix("\n")
+            width = (splitpline[1].removesuffix("\n"))
             datamap[width] = ([],[],[],[],[])
             sendG = datamap[width][0]
             recG = datamap[width][1]
@@ -83,13 +83,14 @@ def readGaps():
                 i+=1
 
 
+calcSpeedOG = 180000000
+calcSpeed   = 180000000
+
+
 def createWriteTable(list):
     ogCalc = float(originalCalc())
     special = False
     info = PrettyTable(['Stencil calc speed / second', 'Grid Width', 'Grid Height', 'Stencils / point'])
-    calcSpeed = 100344885.21751237
-    calcSpeed = 90000000
-    calcSpeed = 74064281
     base_runtime = ogCalc / calcSpeed
     info.add_row([calcSpeed, WIDTH, HEIGHT, 3])
     sgap = list[0]
@@ -102,7 +103,7 @@ def createWriteTable(list):
     ogRuntime = base_runtime + gap_time
 
     t = PrettyTable(['Border Thickness', 'Stencils', 'Extra Stencils / Sstep', 'Ssteps', 'S gap / Sstep', 'R gap / Sstep', "C gap / Sstep", "T gap / Sstep",
-                     'Extra stencils  * Calc speed / Sstep','T gap * Supersteps', 'Runtime', '% increase',
+                     'Extra stencils  / Calc speed','T gap * Supersteps', 'Runtime', '% increase',
                      '% more stencil points', "Physical runtime for 166h"])
     # tK = PrettyTable(['Border Thickness', 'Stencil Points', 'Extra Points / Sstep', 'Ssteps', 'Communications' 'Gap time each Sstep', 'Comm gap * Supersteps', 'Extra points  * Calc speed', 'Runtime', '% increase'])
     t.add_row(["1", ogCalc, None, float(ITERATIONS), sgap[0],rgap[0],cgap[0],tgap[0], None , gap_time, ogRuntime,
@@ -135,7 +136,9 @@ def createWriteTable(list):
         # tK.add_row(["b" + str(i), total, pr_super, total_super, gapList[i-1], comm_gap_times_superstep_cartesian, extra_points_over_calc_speed, runtime, round(perc,2)])
         # print("b" + str(i) + " " + str(total) +  " " + str(pr_super) + " " + str(total_super))
         i += 1
-    if percentages[0] < 100 and percentages[1] < 100:
+    if percentages[0] < 99.5 and percentages[1] < 99.5:
+        special = True
+    if percentages[0] < 99:
         special = True
     return info, t, special
 
@@ -144,23 +147,32 @@ if __name__ == "__main__":
     s = open("estimation/special.txt", "w")
     s.close()
     readGaps()
+    k = calcSpeed
     for i in sorted(datamap.keys()):
+        k = calcSpeed
         f = open("estimation/" + i + ".txt", "w")
         WIDTH = int(i)
-        for he in sorted(h):
-            HEIGHT = he
-            info, t, special = createWriteTable(datamap[i])
-            f.write(str(info))
-            f.write(str(t) + "\n\n")
-            if special:
-                s = open("estimation/special.txt", "a")
-                s.write(str(info))
-                s.write(str(t))
-                s.close()
-            # if(i == "500"):
-            # print(info)
-            # print(t)
-        # break
+        calcSpeed = calcSpeedOG
+        while k >= 50000000:
+            j = 50
+            print(i + " " + str(k))
+            while j < 4000:
+                HEIGHT = j
+                info, t, special = createWriteTable(datamap[i])
+                f.write(str(info))
+                f.write(str(t) + "\n\n")
+                if special:
+                    s = open("estimation/special.txt", "a")
+                    s.write(str(info))
+                    s.write(str(t))
+                    s.close()
+                j+=10
+                # if(i == "500"):
+                # print(info)
+                # print(t)
+            # break
+            calcSpeed -= 20000000
+            k = calcSpeed
 
 
     # print(tK)
