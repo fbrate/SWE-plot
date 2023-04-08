@@ -4,7 +4,10 @@ import numpy as np
 from scipy.stats import kstest
 import math
 import matplotlib.pyplot as plt
-fileDir ="combined"
+fileDir ="combined112"
+datafile = "getDataUpdated_1.out"
+plotdir = "combined112Plots"
+resultdir = plotdir + "/results/"
 blocking = dict()
 sgap = dict()
 rgap = dict()
@@ -13,7 +16,7 @@ edgecalc = dict()
 corecalc = dict()
 
 plotting = False
-plotAverages = True
+plotAverages = False
 
 
 block = dict()
@@ -43,7 +46,7 @@ def max(a, b):
 
 def open_file(name):
     # Use a breakpoint in the code line below to debug your script.
-    file = open(fileDir + "/getData_17654776.out", "r")
+    file = open(fileDir + "/" + datafile, "r")
     # find latency
     latency = 0
     # possible tags:
@@ -130,7 +133,10 @@ def open_file(name):
 
 
                 width = int(splitLine[0]) + (int(splitLine[2])/10)
-                edgecalc[width] = []
+                try:
+                    edgecalc[width]
+                except KeyError:
+                    edgecalc[width] = []
                 i = 3
                 while i < len(splitLine):
                     if (float(splitLine[i]) == 0):
@@ -168,7 +174,6 @@ def removeExtremes():
         leng = leng/100
         j = 0
         while j < leng:
-            rev = sorted(list,reverse=True)
             if j % 2 == 0:
                 list.pop(0)
             else:
@@ -182,7 +187,6 @@ def removeExtremes():
         leng = leng/100
         j = 0
         while j < leng:
-            rev = sorted(list,reverse=True)
             if j % 2 == 0:
                 list.pop(0)
             else:
@@ -196,7 +200,6 @@ def removeExtremes():
         leng = leng/100
         j = 0
         while j < leng:
-            rev = sorted(list,reverse=True)
             if j % 2 == 0:
                 list.pop(0)
             else:
@@ -210,7 +213,6 @@ def removeExtremes():
         leng = leng/100
         j = 0
         while j < leng:
-            rev = sorted(list,reverse=True)
             if j % 2 == 0:
                 list.pop(0)
             else:
@@ -220,22 +222,36 @@ def removeExtremes():
 
     # EdgeCalc
     #
-    # for i in sorted(edgecalc.keys()):
-    #
-    #     list = sorted(edgecalc[i])
-    #     leng = len(list)
-    #     leng = leng / 100
-    #     if len < 1 :
-    #         len = 1.5
-    #     j = 0
-    #     while j < leng:
-    #         rev = sorted(list, reverse=True)
-    #         if j % 2 == 0:
-    #             list.pop(0)
-    #         else:
-    #             list.pop()
-    #         j += 1
-    #     edgecalc[i]= list
+    for i in sorted(edgecalc.keys()):
+
+        list = sorted(edgecalc[i])
+        leng = len(list)
+        leng = leng / 100
+        if leng < 1 :
+            leng = 1.5
+        j = 0
+        while j < leng:
+            if j % 2 == 0:
+                list.pop(0)
+            else:
+                list.pop()
+            j += 1
+        edgecalc[i] = list
+    for i in sorted(corecalc.keys()):
+        for j in sorted(corecalc[i].keys()):
+            list = sorted(corecalc[i][j])
+            leng = len(list)
+            leng = leng / 100
+            if leng < 1 :
+                leng = 1.5
+            k = 0
+            while k < leng:
+                if k % 2 == 0:
+                    list.pop(0)
+                else:
+                    list.pop()
+                k += 1
+            corecalc[i][j] = list
 
 
 def readDataFiles():
@@ -245,7 +261,9 @@ def readDataFiles():
     global edgecalc
     global corecalc
     global sgap, vgap, rgap
-    f = open("combinedBlock.txt", "w")
+    f = open(resultdir+ "combinedBlock.txt", "w")
+    tbl = open(resultdir+ "tableBlock.txt", "w")
+    t = PrettyTable(["Size", "Median", "Average", "Standard Deviation", "%"])
     f.write("BLOCKING: Size, Median, Average, Standard Deviation\n")
     comNormal = 0
     comTotal = 0
@@ -260,6 +278,7 @@ def readDataFiles():
         perc = std / avg * 100
         block[i] = (med, avg, std, perc)
         f.write(str(i)+ "," + str(med) + "," + str(avg) +"," + str(std) + "," + str(round(perc,1)) +"%\n")
+        t.add_row([i, med, avg, std, round(perc,1)])
         sor = sorted(blocking[i])
         normaly = kstest(list, 'norm')
         if (normaly[1] > 0.05):
@@ -270,11 +289,15 @@ def readDataFiles():
             title = "Block" + str(i)
             print("Plot " + title)
             plt.plot(plotList, label=title)
-            plt.savefig("combinedPlots/block/block" + str(i))
+            plt.savefig(plotdir + "/block/block" + str(i))
             plt.close()
+    tbl.write(str(t))
+    tbl.close()
+    t = PrettyTable(["Size","Send Median", "Recv Median", "Verify Median" ,"Send Average", " Recv Average", "Verify Average", "Send Std", "Recv Std", "Verify Std"])
     f.write("COMGAP: Size, SRV Median, SRV, Average, SRV Standard Deviation\n")
     print("BLOCKINGCOM normals:"+ str(comNormal))
 
+    tbl = open(resultdir+ "tableGap.txt", "w")
     sTotal = 0
     rTotal  = 0
     vTotal = 0
@@ -313,26 +336,20 @@ def readDataFiles():
             plotList = sorted(rgap[i])
             title = "rgap" + str(i)
             print("Plot " + title)
-            if (i > 1000):
-                continue
             plt.plot(plotList, label=title)
-            plt.savefig("combinedPlots/gap/rgap" + str(i))
+            plt.savefig(plotdir + "/gap/rgap" + str(i))
             plt.close()
             plotList = sorted(sgap[i])
             title = "sgap" + str(i)
             print("Plot " + title)
-            if (i > 1000):
-                continue
             plt.plot(plotList, label=title)
-            plt.savefig("combinedPlots/gap/sgap" + str(i))
+            plt.savefig(plotdir + "/gap/sgap" + str(i))
             plt.close()
             plotList = sorted(vgap[i])
             title = "vgap" + str(i)
             print("Plot " + title)
-            if (i > 1000):
-                continue
             plt.plot(plotList, label=title)
-            plt.savefig("combinedPlots/gap/vgap" + str(i))
+            plt.savefig(plotdir + "/gap/vgap" + str(i))
             plt.close()
 
         vTotal+=1
@@ -343,9 +360,14 @@ def readDataFiles():
         gap[i] = ((smed, savg, sstd, sperc),(rmed,ravg,rstd,rperc),(vmed,vavg,vstd,vperc))
 
         f.write(str(math.floor(i))+ "," + str(smed)+";" + str(savg) +";" + str(sstd) + "," + str(rmed)+";" + str(ravg) +";" + str(rstd) +"," + str(vmed)+";" + str(vavg) +";" + str(vstd) +"\n")
-    print("SGAP :" +str(sNormal) + "/" + str(sTotal))
-    print("RGAP :" +str(rNormal) + "/" + str(rTotal))
-    print("VGAP :" +str(rNormal) + "/" + str(vTotal))
+        t.add_row([str(math.floor(i)), med, rmed, vmed, savg, ravg, vavg, sstd, rstd, vstd])
+    # print("SGAP :" +str(sNormal) + "/" + str(sTotal))
+    # print("RGAP :" +str(rNormal) + "/" + str(rTotal))
+    # print("VGAP :" +str(rNormal) + "/" + str(vTotal))
+    tbl.write(str(t))
+    tbl.close()
+    tbl = open(resultdir+ "tableEdge.txt", "w")
+    t = PrettyTable(["Size", "HALO" ,"Median", "Average", "Standard Deviation", "%"])
     f.write("EDGECALC: Size, Halo, Median, Average, Standard Deviation\n")
     for i in sorted(edgecalc.keys()):
         # Write for each and numpy median each border for each width.
@@ -369,11 +391,16 @@ def readDataFiles():
             title = "edge" + str(i)
             print("Plot " + title)
             plt.plot(plotList, label=title)
-            plt.savefig("combinedPlots/edge/edge" + str(i) +".png")
+            plt.savefig(plotdir + "/edge/edge" + str(i) +".png")
             plt.close()
 
         f.write(str(splitline[0]) + "," + str(halo) + ","+str(med) + "," + str(avg) +"," + str(std) + "," + str(round(perc,1)) +"%\n")
+        t.add_row([str(splitline[0]), halo, med, avg, std, round(perc,1)])
     f.write("#####################################################\nCORECALC: SizeW, SizeH, Halo, Median, Average, Standard Deviation, std % of avg\n")
+    tbl.write(str(t))
+    tbl.close()
+    tbl = open(resultdir+ "tableCore.txt", "w")
+    t = PrettyTable(["Size W", "Size H", "Halo","Median", "Average", "Standard Deviation", "%"])
     global corecalc
     for i in sorted(corecalc.keys()):
         # Write for each and numpy median each border for each width.
@@ -387,16 +414,19 @@ def readDataFiles():
             perc = std/avg * 100
             core[i][j]= (med,avg,std,perc)
             f.write(str(i) + "," +str(heightHalo[0]) + "," + str(heightHalo[1]) + ","+str(med) + "," + str(avg) +"," + str(std) + "," + str(round(perc,1)) +"%\n")
+            t.add_row([str(i), str(heightHalo[0]), str(heightHalo[1]), med, avg, std, round(perc,1)])
             if plotting:
                 plotList = sorted(corecalc[i][j])
                 title = "core" + str(i) + "_" + str(j) + ".png"
                 print("Plot " + title)
                 plt.plot(plotList, label=title)
-                plt.savefig("combinedPlots/core/" + title)
+                plt.savefig(plotdir + "/core/" + title)
                 plt.close()
             # corecalc[i][j] = sorted(corecalc[i][j])
     f.close()
 
+    tbl.write(str(t))
+    tbl.close()
     # corecalc = None
     # edgecalc = None
     # blocking = None
@@ -467,13 +497,13 @@ def findValidGapCore():
                            perc, timeOG])
 
         # print(t)
-        s = open("combinedResults/" + str(w) + ".txt", "w")
+        s = open(resultdir  + str(w) + ".txt", "w")
         s.write(str(t))
         s.close()
 
     # end for each width
     if special:
-        s = open("combinedResults/special.txt", "w")
+        s = open(resultdir + "special.txt", "w")
         s.write(str(special))
         s.close()
         print()
@@ -514,7 +544,7 @@ def plotAverages():
 
         plt.bar(x_axis, averageValues, width=1.0, align='center', capsize=4, alpha=0.9, ecolor='black',
                 color="lightsteelblue")
-        plt.savefig("combinedPlots/avg/block")
+        plt.savefig(plotdir + "/avg/block")
 
 
         # Gap
@@ -522,10 +552,9 @@ def plotAverages():
         list = sgap
         x_axis = []
         averageValues = []
-        copy = sorted(blocking[200], reverse=True)
         for i in list.keys():
             x_axis.append(int(i))
-            averageValues.append(float(list[i][1]))
+            averageValues.append(float(np.average(list[i])))
 
         fix, ax = plt.subplots(figsize=(10, 5))
         ax.set_xlabel("Stencil points per communication")
@@ -535,14 +564,13 @@ def plotAverages():
 
         plt.bar(x_axis, averageValues, width=1.0, align='center', capsize=4, alpha=0.9, ecolor='black',
                 color="lightsteelblue")
-        plt.savefig("combinedPlots/avg/sgap")
+        plt.savefig(plotdir + "/avg/sgap")
         list = rgap
         x_axis = []
         averageValues = []
-        copy = sorted(blocking[200], reverse=True)
         for i in list.keys():
             x_axis.append(int(i))
-            averageValues.append(float(list[i][1]))
+            averageValues.append(float(np.average(list[i])))
 
         fix, ax = plt.subplots(figsize=(10, 5))
         ax.set_xlabel("Stencil points per communication")
@@ -552,14 +580,14 @@ def plotAverages():
 
         plt.bar(x_axis, averageValues, width=1.0, align='center', capsize=4, alpha=0.9, ecolor='black',
                 color="lightsteelblue")
-        plt.savefig("combinedPlots/avg/rgap")
+        plt.savefig(plotdir + "/avg/rgap")
         list = vgap
         x_axis = []
         averageValues = []
         copy = sorted(blocking[200], reverse=True)
         for i in list.keys():
             x_axis.append(int(i))
-            averageValues.append(float(list[i][1]))
+            averageValues.append(float(np.average(list[i])))
 
         fix, ax = plt.subplots(figsize=(10, 5))
         ax.set_xlabel("Stencil points per communication")
@@ -569,25 +597,89 @@ def plotAverages():
 
         plt.bar(x_axis, averageValues, width=1.0, align='center', capsize=4, alpha=0.9, ecolor='black',
                 color="lightsteelblue")
-        plt.savefig("combinedPlots/avg/vgap")
+        plt.savefig(plotdir + "/avg/vgap")
         # Edge
         values = dict()
         i = 0
-        for i in edgecalc.keys():
-            split = i.split(".")
-            width = split[0]
-            halo = split[1]
+        for i in edges.keys():
+            split = str(i).split(".")
+            width = int(split[0])
+            halo = int(split[1])
+            if(halo == 0):
+                width -= 1
+                halo = 10
             try:
-                k = values[i]
+                k = values[width]
             except KeyError:
-                values[i] = []
+                values[width] = []
+            values[width].append(edges[i][1])
+        labels = [1,2,3,4,5,6,7,8,9,10]
+        for i in values:
+            fix, ax = plt.subplots(figsize=(10, 5))
+            ax.set_xlabel("HALOS")
+            ax.set_ylabel("Time Calculation")
+            ax.yaxis.grid(True)
+            plt.title("")
 
-
+            plt.bar(labels, values[i], width=1.0, align='center', capsize=4, alpha=0.9, ecolor='black',
+                    color="lightsteelblue", label="1")
+            plt.savefig(plotdir + "/avg/edge/edge" + str(i) +".png")
+            plt.close()
         # Core
+        # DO THIS BUT FOR every j in coreedges.
+        for j in corecalc.keys():
+            values = dict()
+            i = 0
+            for i in corecalc[j].keys():
+                split = str(i).split(".")
+                width = int(split[0])
+                halo = int(split[1])
+                if(halo == 0):
+                    width -= 1
+                    halo = 10
+                try:
+                    k = values[width]
+                except KeyError:
+                    values[width] = []
+                values[width].append(core[j][i][1])
+            labels = [1,2,3,4,5,6,7,8,9,10]
+            for i in values:
+                try:
+                    os.makedirs(plotdir+"/avg/core/" + str(j))
+                except FileExistsError:
+                    pass
+                fix, ax = plt.subplots(figsize=(10, 5))
+                ax.set_xlabel("HALOS")
+                ax.set_ylabel("Time Calculation")
+                ax.yaxis.grid(True)
+                plt.title("")
+
+                plt.bar(labels, values[i], width=1.0, align='center', capsize=4, alpha=0.9, ecolor='black',
+                        color="lightsteelblue", label="1")
+                plt.savefig(plotdir + "/avg/core/" + str(j) + "/" + str(i)+ ".png")
+                plt.close()
+
+def createEnvironment():
+    try:
+        os.makedirs(plotdir)
+    except FileExistsError:
+        print("Plotdir exists.")
+    try:
+        os.makedirs(plotdir + "/avg")
+        os.makedirs(plotdir + "/block")
+        os.makedirs(plotdir + "/core")
+        os.makedirs(plotdir + "/edge")
+        os.makedirs(plotdir + "/gap")
+        os.makedirs(plotdir + "/avg/edge")
+        os.makedirs(plotdir + "/avg/core")
+        os.makedirs(resultdir)
+    except FileExistsError:
+        print("Subplotdirs exists.")
 
 
 if __name__ == "__main__":
+    createEnvironment()
     readDataFiles()
     plotAverages()
-    findValidGapCore()
+    #findValidGapCore()
     # I think we need to plot the gaps, blocks, edgeCalc and corecalc.
