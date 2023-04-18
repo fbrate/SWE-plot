@@ -4,10 +4,15 @@ import numpy as np
 from scipy.stats import kstest
 import math
 import matplotlib.pyplot as plt
-fileDir ="combined112"
-datafile = "getDataUpdated_1.out"
-plotdir = "combined112Plots"
+# fileDir ="combined112"
+# datafile = "getDataUpdated_2.out"
+# plotdir = "combined112Plots"
+# resultdir = plotdir + "/results/"
+pileDir ="combined56"
+datafile = "getDataUpdated56_1.out"
+plotdir = "combined56Plots_1"
 resultdir = plotdir + "/results/"
+
 blocking = dict()
 sgap = dict()
 rgap = dict()
@@ -18,7 +23,7 @@ corecalc = dict()
 plotting = False
 plotAverages = False
 
-
+SUPERSTEPS = 2520
 block = dict()
 gap = dict()
 edges = dict()
@@ -261,8 +266,8 @@ def readDataFiles():
     global edgecalc
     global corecalc
     global sgap, vgap, rgap
-    f = open(resultdir+ "combinedBlock.txt", "w")
-    tbl = open(resultdir+ "tableBlock.txt", "w")
+    f = open(resultdir + "combinedBlock.txt", "w")
+    tbl = open(resultdir + "tableBlock.txt", "w")
     t = PrettyTable(["Size", "Median", "Average", "Standard Deviation", "%"])
     f.write("BLOCKING: Size, Median, Average, Standard Deviation\n")
     comNormal = 0
@@ -295,7 +300,7 @@ def readDataFiles():
     tbl.close()
     t = PrettyTable(["Size","Send Median", "Recv Median", "Verify Median" ,"Send Average", " Recv Average", "Verify Average", "Send Std", "Recv Std", "Verify Std"])
     f.write("COMGAP: Size, SRV Median, SRV, Average, SRV Standard Deviation\n")
-    print("BLOCKINGCOM normals:"+ str(comNormal))
+    #print("BLOCKINGCOM normals:"+ str(comNormal))
 
     tbl = open(resultdir+ "tableGap.txt", "w")
     sTotal = 0
@@ -436,93 +441,117 @@ def readDataFiles():
 
 
 def findValidGapCore():
+    # 1 for avg, 0 for median
+    medianOrAvg = 1
     iterations = 2520
     # compare gaps added
     # gaps need to be multiplied by each direciton sent. 2 for horizontal.
     # same goes for edge.
-    special = PrettyTable(
-        ["HALO", "Width", "Height", "Gap/Sstep", "CCalc/Sstep", "EdgeCalc/Sstep", "Ssteps", "Block time",
-         "Core Time > Block Time", "(ECalc + CCalc + Gap) * Ssteps", "%", "OG run"])
+    special = PrettyTable(["Width", "Height", "HALO", "Gap/Sstep", "CCalc/Sstep", "EdgeCalc/Sstep"
+                        , "Ssteps", "Core Time > Block Time", "(ECalc + CCalc + Gap) * Ssteps", "% compared to OG run",
+                     "OG run"])
+    special28= PrettyTable(["Width", "Height", "HALO", "Gap/Sstep", "CCalc/Sstep", "EdgeCalc/Sstep"
+                              , "Ssteps", "Core Time > Block Time", "(ECalc + CCalc + Gap) * Ssteps", "% compared to OG run",
+                           "OG run"])
     for w in sorted(core.keys()):
-        halo =1
-        key = str(100) + "." + str(halo)
-        key = float(key)
-        gapsTuple = gap[w]
-        blockTuple = block[w]
-        coreTuple = core[w]
-        # blockTuple = block[w]
-        # gets each of the average valus and adds them
-        gapsAvg = gapsTuple[0][1] + gapsTuple[1][1] + gapsTuple[2][1]
-        # this one also adds the std deviation for eachgapsTuple[0][1] + gapsTuple[1][1] + gapsTuple[2][1]
-        # gapsAvgPlus = gapsTuple[0][1] + gapsTuple[1][1] + gapsTuple[2][1] + gapsTuple[0][2] + gapsTuple[1][2] + gapsTuple[2][2]
-        gapsAvg *= 2 # multiply by two since we send in two directions.
-        # gapsAvgPlus *= 2 # multiply by two since we send in two directions.
-        supersteps = 2520
-        t = PrettyTable(["HALO", "Width", "Height", "Gap/Sstep", "CCalc/Sstep", "EdgeCalc/Sstep"
-                            , "Ssteps", "Block time", "Core Time > Block Time","(ECalc + CCalc + Gap) * Ssteps", "%", "OG run"])
-        # tK = PrettyTable(['Border Thickness', 'Stencil Points', 'Extra Points / Sstep', 'Ssteps', 'Communications' 'Gap time each Sstep', 'Comm gap * Supersteps', 'Extra points  * Calc speed', 'Runtime', '% increase'])
+        # DataType Varies by:
+        # Type      WIDTH, HEIGHT, HALO, note
+        # GAP       y    ,  n    , y , multiply by 2
+        # EDGE      y    ,  n    , y,  multiply by 2
+        # CORE      y    ,  y    , y
+        #
 
+        # For each WIDTH:
+            # Find Edge -- fixed per width --
+            # Find HEIGHT
+                # TEST FOR ALL HALOS
+                    # update gap
+                    # update edge
+                    # update core
+                    # TEST:
+                    # make sure block[width] is sufficiently high over core calc.
+                    # multiply gap with 2 for each direction
+                    # for each halo gap should be multiplied by halo.
+                # use HALO 1 as baseline
 
-
-        # if average % with std is greater than say 10%.
-        # Use median instead. Maybe append 50% of std?
-        timeOG = 0
-        #print("Calculating for width: " + str(w) + "\n --", end = "")
-        for h in coreTuple.keys():
-            #print(", " +str(h), end="")
+            # REPEAT FOR EVERY HEIGHT.
+        original_time = -999
+        # create tables per height.
+        t = PrettyTable(["Width", "Height", "HALO", "Gap/Sstep", "CCalc/Sstep", "EdgeCalc/Sstep"
+                            , "Ssteps", "Core Time > Block Time", "(ECalc + CCalc + Gap) * Ssteps",
+                         "% compared to OG run", "OG run"])
+        for h in core[w].keys():
             splitH = h.split(".")
             halo = int(splitH[1])
-            supersteps = 2520 * (1/halo)
-            coreSpeed = coreTuple[h][1]
-            edgeAvg = edges[float(h)][1]
-            blockTime = blockTuple[1]
-            # total time
-            time = edgeAvg + gapsAvg + coreSpeed
-            time *= supersteps
-            coreOverBlock = False
-            if coreSpeed > blockTime:
-                coreOverBlock = True
-            perc = 100
-            if splitH[1] == '1':
-                timeOG = time
+            height = int(splitH[0])
+
+            # get values for current width, height, halo setup
+            gapsSend = gap[w * halo][0][medianOrAvg]
+            gapsRecv = gap[w * halo][1][medianOrAvg]
+            gapsVerify = gap[w * halo][2][medianOrAvg]
+            blockValue = block[w * halo][medianOrAvg]
+            coreValue = core[w][h][medianOrAvg]
+            if halo == 10:
+                key = w + 0.1
             else:
-                perc = time/timeOG * 100
+                key = w + (halo/10)
+            edgeValue = edges[key][medianOrAvg]
 
-            # write to width file under subfolder
-            t.add_row([splitH[1], w, splitH[0], gapsAvg, coreSpeed, edgeAvg, supersteps, blockTime, coreOverBlock, time, perc, timeOG])
+            # modify values
+            # these need to be calculated for each direction
+            gapsSend *= 2
+            gapsRecv *= 2
+            gapsVerify *= 2
+            edgeValue *= 2
 
+            # simplify
+            gapsCombined = gapsSend + gapsRecv + gapsVerify
+            supersteps = SUPERSTEPS * (1/halo)
+
+            coreOverBlock = False
+            if coreValue > blockValue:
+                coreOverBlock = True
+
+            # SUM total with supersteps performed
+            gapsTotal = gapsCombined * supersteps
+            edgeTotal = edgeValue * supersteps
+            coreTotal = coreValue * supersteps
+
+
+            time = gapsTotal + edgeTotal + coreTotal
+            perc = 0
+            if halo == 1:
+                original_time = time
+            else:
+                perc = time/original_time * 100
+            # fill table and write correctly
+            # Likely just copy from last
+
+            t.add_row([w, height, halo, gapsCombined, coreValue, edgeValue, supersteps, coreOverBlock, time, perc,
+                             original_time])
             # append to a special file under each subfolder.
             if (perc < 100 and coreOverBlock is True):
-                special.add_row([splitH[1], w, splitH[0], gapsAvg, coreSpeed, edgeAvg, supersteps, blockTime, coreOverBlock, time,
-                           perc, timeOG])
+                if halo != 1:
+                    special.add_row([w, height, halo, gapsCombined, coreValue, edgeValue, supersteps, coreOverBlock, time, perc, original_time])
+                    if halo != 10:
+                        special28.add_row([w, height, halo, gapsCombined, coreValue, edgeValue, supersteps, coreOverBlock, time, perc, original_time])
 
         # print(t)
-        s = open(resultdir  + str(w) + ".txt", "w")
+        s = open(resultdir + "/final/" +str(w) + ".txt", "w")
         s.write(str(t))
         s.close()
 
     # end for each width
     if special:
-        s = open(resultdir + "special.txt", "w")
+        s = open(plotdir +"/special.txt", "w")
         s.write(str(special))
         s.close()
         print()
-
-    # print(special)
-    # FLOW:
-    # get gap for a size. time with 2.
-    # get blocking for that size. Time it with 2 or 3?
-    # find coreCalc which is longer than the block.
-
-    # estimate time with EdgeCalc, GAP and Corecalc.
-    # compare to halo 1 and percentage bases output. Store good cases in own file.
-
-
-    # add the edgecalc at last.
-
-    # baseline = 2520 * gap halo 1
-    # baseline += core(halo1) + (edge * 2)
-
+    if special28:
+        s = open(plotdir +"/special29.txt", "w")
+        s.write(str(special28))
+        s.close()
+        print()
 
 def plotAverages():
     if plotAverages:
@@ -536,16 +565,17 @@ def plotAverages():
             x_axis.append(int(i))
             averageValues.append(float(list[i][1]))
 
-        fix, ax = plt.subplots(figsize=(10, 5))
+        fix, ax = plt.subplots(figsize=(15, 5))
         ax.set_xlabel("Stencil points per communication")
         ax.set_ylabel("Time (s)")
         ax.yaxis.grid(True)
-        plt.title("")
+        plt.title("Blocking communication time for messages")
 
-        plt.bar(x_axis, averageValues, width=1.0, align='center', capsize=4, alpha=0.9, ecolor='black',
+        plt.plot(x_axis, averageValues,
                 color="lightsteelblue")
         plt.savefig(plotdir + "/avg/block")
 
+        # exit(1)
 
         # Gap
 
@@ -556,48 +586,78 @@ def plotAverages():
             x_axis.append(int(i))
             averageValues.append(float(np.average(list[i])))
 
-        fix, ax = plt.subplots(figsize=(10, 5))
+        fix, ax = plt.subplots(figsize=(15, 5))
         ax.set_xlabel("Stencil points per communication")
         ax.set_ylabel("Time (s)")
         ax.yaxis.grid(True)
-        plt.title("")
+        plt.title("Send cpu lock for communication")
 
-        plt.bar(x_axis, averageValues, width=1.0, align='center', capsize=4, alpha=0.9, ecolor='black',
-                color="lightsteelblue")
-        plt.savefig(plotdir + "/avg/sgap")
         list = rgap
         x_axis = []
-        averageValues = []
+        averageValues2 = []
         for i in list.keys():
             x_axis.append(int(i))
-            averageValues.append(float(np.average(list[i])))
+            averageValues2.append(float(np.average(list[i])))
 
-        fix, ax = plt.subplots(figsize=(10, 5))
+        fix, ax = plt.subplots(figsize=(15, 5))
         ax.set_xlabel("Stencil points per communication")
         ax.set_ylabel("Time (s)")
         ax.yaxis.grid(True)
-        plt.title("")
-
-        plt.bar(x_axis, averageValues, width=1.0, align='center', capsize=4, alpha=0.9, ecolor='black',
-                color="lightsteelblue")
-        plt.savefig(plotdir + "/avg/rgap")
+        plt.title("Receive cpu lock for communication")
         list = vgap
         x_axis = []
-        averageValues = []
+        averageValues3 = []
         copy = sorted(blocking[200], reverse=True)
         for i in list.keys():
             x_axis.append(int(i))
-            averageValues.append(float(np.average(list[i])))
+            averageValues3.append(float(np.average(list[i])))
 
-        fix, ax = plt.subplots(figsize=(10, 5))
+        fix, ax = plt.subplots(figsize=(15, 5))
         ax.set_xlabel("Stencil points per communication")
         ax.set_ylabel("Time (s)")
         ax.yaxis.grid(True)
-        plt.title("")
+        plt.title("Core lock for non-blocking communication steps")
+        plt.plot(x_axis, averageValues,
+                 label="Send Gap", color="blue")
+        plt.plot(x_axis, averageValues2,
+                 label="Receive Gap", color="red")
+        plt.plot(x_axis, averageValues3,
+                 label="Verify Gap", color="green")
+        leg = ax.legend()
+        plt.savefig(plotdir + "/avg/gap")
 
-        plt.bar(x_axis, averageValues, width=1.0, align='center', capsize=4, alpha=0.9, ecolor='black',
-                color="lightsteelblue")
+        plt.close()
+        fix, ax = plt.subplots(figsize=(15, 5))
+        ax.set_xlabel("Stencil points per communication")
+        ax.set_ylabel("Time (s)")
+        ax.yaxis.grid(True)
+        plt.plot(x_axis, averageValues3,
+                 label="Verify Gap", color="green")
+        plt.title("Core lock for non-blocking communication verification step")
+        leg = ax.legend()
         plt.savefig(plotdir + "/avg/vgap")
+
+        plt.close()
+        fix, ax = plt.subplots(figsize=(15, 5))
+        ax.set_xlabel("Stencil points per communication")
+        ax.set_ylabel("Time (s)")
+        ax.yaxis.grid(True)
+        plt.plot(x_axis, averageValues2,
+                 label="Receive gap", color="red")
+        leg = ax.legend()
+        plt.title("Core lock for non-blocking communication receive step")
+        plt.savefig(plotdir + "/avg/rgap")
+        plt.close()
+        fix, ax = plt.subplots(figsize=(15, 5))
+        ax.set_xlabel("Stencil points per communication")
+        ax.set_ylabel("Time (s)")
+        ax.yaxis.grid(True)
+        plt.plot(x_axis, averageValues,
+                 label="Send Gap", color="blue")
+        leg = ax.legend()
+        plt.title("Core lock for non-blocking communication send step")
+        plt.savefig(plotdir + "/avg/sgap")
+        plt.close()
         # Edge
         values = dict()
         i = 0
@@ -615,14 +675,14 @@ def plotAverages():
             values[width].append(edges[i][1])
         labels = [1,2,3,4,5,6,7,8,9,10]
         for i in values:
-            fix, ax = plt.subplots(figsize=(10, 5))
+            fix, ax = plt.subplots(figsize=(15, 5))
             ax.set_xlabel("HALOS")
             ax.set_ylabel("Time Calculation")
             ax.yaxis.grid(True)
-            plt.title("")
+            plt.title("Edge calculation speed for width" + str(i))
 
-            plt.bar(labels, values[i], width=1.0, align='center', capsize=4, alpha=0.9, ecolor='black',
-                    color="lightsteelblue", label="1")
+            plt.plot(labels, values[i],
+                    color="lightsteelblue")
             plt.savefig(plotdir + "/avg/edge/edge" + str(i) +".png")
             plt.close()
         # Core
@@ -648,14 +708,14 @@ def plotAverages():
                     os.makedirs(plotdir+"/avg/core/" + str(j))
                 except FileExistsError:
                     pass
-                fix, ax = plt.subplots(figsize=(10, 5))
+                fix, ax = plt.subplots(figsize=(15, 5))
                 ax.set_xlabel("HALOS")
                 ax.set_ylabel("Time Calculation")
                 ax.yaxis.grid(True)
-                plt.title("")
 
-                plt.bar(labels, values[i], width=1.0, align='center', capsize=4, alpha=0.9, ecolor='black',
+                plt.plot(labels, values[i],
                         color="lightsteelblue", label="1")
+                plt.title("Core calculation time for width " +str(j) + "w, " + str(i) + "h")
                 plt.savefig(plotdir + "/avg/core/" + str(j) + "/" + str(i)+ ".png")
                 plt.close()
 
@@ -673,6 +733,7 @@ def createEnvironment():
         os.makedirs(plotdir + "/avg/edge")
         os.makedirs(plotdir + "/avg/core")
         os.makedirs(resultdir)
+        os.makedirs(resultdir + "/final")
     except FileExistsError:
         print("Subplotdirs exists.")
 
@@ -681,5 +742,5 @@ if __name__ == "__main__":
     createEnvironment()
     readDataFiles()
     plotAverages()
-    #findValidGapCore()
+    findValidGapCore()
     # I think we need to plot the gaps, blocks, edgeCalc and corecalc.
