@@ -8,9 +8,9 @@ import matplotlib.pyplot as plt
 # datafile = "getDataUpdated_2.out"
 # plotdir = "combined112Plots"
 # resultdir = plotdir + "/results/"
-pileDir ="combined56"
+fileDir ="combined56"
 datafile = "getDataUpdated56_1.out"
-plotdir = "combined56Plots_1"
+plotdir = "combined56Plots_1_new"
 resultdir = plotdir + "/results/"
 
 blocking = dict()
@@ -289,7 +289,8 @@ def readDataFiles():
         if (normaly[1] > 0.05):
             comNormal+=1
         comTotal +=1
-        if plotting:
+
+        if plotting is True:
             plotList = sorted(list)
             title = "Block" + str(i)
             print("Plot " + title)
@@ -335,9 +336,7 @@ def readDataFiles():
         if (vNor[1] > 0.05):
             vNormal+=1
 
-
-
-        if plotting:
+        if plotting is True:
             plotList = sorted(rgap[i])
             title = "rgap" + str(i)
             print("Plot " + title)
@@ -391,7 +390,7 @@ def readDataFiles():
         edges[i] = (med,avg,std,perc)
         sor = sorted(edgecalc[i])
 
-        if plotting:
+        if plotting is True:
             plotList = sorted(list)
             title = "edge" + str(i)
             print("Plot " + title)
@@ -420,7 +419,7 @@ def readDataFiles():
             core[i][j]= (med,avg,std,perc)
             f.write(str(i) + "," +str(heightHalo[0]) + "," + str(heightHalo[1]) + ","+str(med) + "," + str(avg) +"," + str(std) + "," + str(round(perc,1)) +"%\n")
             t.add_row([str(i), str(heightHalo[0]), str(heightHalo[1]), med, avg, std, round(perc,1)])
-            if plotting:
+            if plotting is True:
                 plotList = sorted(corecalc[i][j])
                 title = "core" + str(i) + "_" + str(j) + ".png"
                 print("Plot " + title)
@@ -437,8 +436,11 @@ def readDataFiles():
     # blocking = None
     # sgap = None
     # vgap = None
-    # rgap = None
 
+def addlabels(x,y,z):
+    for i in range(len(x)):
+        val = str(round(y[i], 2)) + "%"
+        plt.text(i+1, z[0]//2, val, ha = 'center')
 
 def findValidGapCore():
     # 1 for avg, 0 for median
@@ -453,6 +455,17 @@ def findValidGapCore():
     special28= PrettyTable(["Width", "Height", "HALO", "Gap/Sstep", "CCalc/Sstep", "EdgeCalc/Sstep"
                               , "Ssteps", "Core Time > Block Time", "(ECalc + CCalc + Gap) * Ssteps", "% compared to OG run",
                            "OG run"])
+    graphValues = []
+    graphStd = []
+    graphX = []
+    graphPerc = []
+    i = 0
+    while i < 10:
+        graphValues.append(0)
+        graphStd.append(0)
+        graphX.append(i+1)
+        graphPerc.append(0)
+        i+=1
     for w in sorted(core.keys()):
         # DataType Varies by:
         # Type      WIDTH, HEIGHT, HALO, note
@@ -519,11 +532,45 @@ def findValidGapCore():
 
 
             time = gapsTotal + edgeTotal + coreTotal
+            ###
             perc = 0
             if halo == 1:
                 original_time = time
             else:
                 perc = time/original_time * 100
+
+            graphPerc[0] = 100
+            global graphHeight, graphWidth
+            if graphHeight == height and graphWidth == w:
+                graphValues[halo-1] = time
+                # get values for current width, height, halo setup
+                stdgapsSend = gap[w * halo][0][2]
+                stdgapsRecv = gap[w * halo][1][2]
+                stdgapsVerify = gap[w * halo][2][2]
+                stdcoreValue = core[w][h][2]
+                if halo == 10:
+                    graphPerc[0] = 100
+                    key = w + 0.1
+                else:
+                    key = w + (halo / 10)
+                stdedgeValue = edges[key][2]
+
+                # modify values
+                # these need to be calculated for each direction
+                stdgapsSend *= 2
+                stdgapsRecv *= 2
+                stdgapsVerify *= 2
+                stdedgeValue *= 2
+
+                # simplify
+                stdgapsCombined = stdgapsSend + stdgapsRecv + stdgapsVerify
+                stdgapsTotal = stdgapsCombined * supersteps
+                stdedgeTotal = stdedgeValue * supersteps
+                stdcoreTotal = stdcoreValue * supersteps
+                stdtime = stdgapsTotal + stdedgeTotal + stdcoreTotal
+                graphStd[halo-1] = stdtime
+                graphPerc[halo-1] = perc
+
             # fill table and write correctly
             # Likely just copy from last
 
@@ -551,10 +598,24 @@ def findValidGapCore():
         s = open(plotdir +"/special29.txt", "w")
         s.write(str(special28))
         s.close()
-        print()
+    if graphValues[0] != 0:
+        title = "Runtime with standard deviation for a domain size of " + str(graphWidth) + "w " +str(graphHeight) + "h"
+        plotloc = plotdir + "/" + str(graphWidth) + "_" +str(graphHeight) + "_std"
+
+        fix, ax = plt.subplots(figsize=(15, 5))
+        ax.set_xlabel("Border Exchange Thickness")
+        ax.set_ylabel("Runime (s)")
+        ax.yaxis.grid(True)
+        plt.title(title)
+        plt.bar(graphX, graphValues, yerr=graphStd, capsize=6, color="lightsteelblue", alpha=0.8)
+        addlabels(graphX, graphPerc, graphValues)
+        plt.savefig(plotloc)
+        # print(graphValues)
+        # print("\n")
+        # print(graphStd)
 
 def plotAverages():
-    if plotAverages:
+    if plotAverages is True:
         # Block
 
         list = block
@@ -738,6 +799,9 @@ def createEnvironment():
         print("Subplotdirs exists.")
 
 
+
+graphWidth = 400
+graphHeight = 1000
 if __name__ == "__main__":
     createEnvironment()
     readDataFiles()
